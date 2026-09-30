@@ -28,6 +28,8 @@
 
 1. **把本仓库推到远程 git 托管**（AutoDL 上要 clone 它）：
    `git remote add origin <你的仓库 url> && git push -u origin HEAD`
+   > 计费常识：**创建实例即自动开机、即开始计费**，计费只跟开机时长有关（与 GPU 是否在算无关）。
+   > 所以创建后立刻关机；下载用无卡模式 ¥0.1/h。完整规则见 `docs/environment.md §4.4`。
 2. **创建 AutoDL 实例**（按量 3080Ti 12G）——**镜像选 PyTorch 2.5.1 / Python 3.12 / CUDA 12.4**
    （保守可选 2.3.0 / 12.1；**必须 Ubuntu 20.04+ 且 CUDA ≥ 11.8**；先 `nvidia-smi` 看宿主驱动上限，
    镜像 CUDA 版本不能超过它。细则见 `docs/environment.md §4.3`）→ 创建后**先关机**（按量精确到秒，早关早不烧钱）→
