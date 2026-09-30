@@ -1,0 +1,851 @@
+可以。既然你已经决定不做“又一个 nano-vLLM”，我建议把自己的项目正式定成一个 **性能工程型 AI Infra 项目**，而不是“部署 Qwen”。
+
+项目题目可以先叫：
+
+> **LLM Inference Performance Engineering：基于 llama.cpp 的端到端推理部署、性能分析与优化**
+
+你的目标不是把所有功能都做一遍，而是完成这一条闭环：
+
+\[
+\boxed{
+部署
+\rightarrow
+建立基线
+\rightarrow
+定位瓶颈
+\rightarrow
+提出假设
+\rightarrow
+修改系统
+\rightarrow
+性能验证
+\rightarrow
+服务压测
+}
+\]
+
+当前 llama.cpp 本身就是 C/C++ LLM inference runtime，支持源码 CUDA 构建，也自带 `llama-bench`、OpenAI-compatible server 和 server benchmark 工具，所以很适合拿来做这条主线。:chatgpt-content-reference{index="0"}
+
+---
+
+# 一、开始之前，先把项目的“问题”定下来
+
+这一点比装 CUDA 还重要。
+
+你不要定义成：
+
+> 我要把 Qwen 跑快。
+
+太空泛。
+
+我建议你整个项目围绕三个问题：
+
+### 问题 1：一个 LLM 请求到底慢在哪里？
+
+区分：
+
+\[
+\text{Prefill}
+\]
+
+也就是一次性处理 prompt，
+
+和：
+
+\[
+\text{Decode}
+\]
+
+也就是一个 token 一个 token 地生成。
+
+你最后应该能说：
+
+> 我的 workload 下，prefill 主要卡在哪里；decode 又主要卡在哪里。
+
+---
+
+### 问题 2：系统参数改变以后，为什么性能会变化？
+
+例如：
+
+```text
+量化
+context length
+batch size
+并发数
+KV cache
+GPU architecture
+```
+
+不是只画图。
+
+而是：
+
+\[
+\text{参数变化}
+\rightarrow
+\text{内存/计算行为变化}
+\rightarrow
+\text{性能变化}
+\]
+
+---
+
+### 问题 3：我能不能真正修改源码，让系统变快？
+
+这是整个项目最有价值的一步。
+
+最终至少做一个：
+
+```text
+CUDA kernel
+CUDA backend
+memory
+scheduler
+runtime
+```
+
+层面的真实修改。
+
+然后证明：
+
+\[
+\text{microbenchmark improvement}
+\]
+
+最终转化成：
+
+\[
+\text{end-to-end improvement}
+\]
+
+---
+
+# 二、准备工作其实只需要 6 件东西
+
+## 1. 一台远程 NVIDIA GPU
+
+第一阶段不需要 H100。
+
+我反而建议：
+
+> **T4 16GB 开始。**
+
+因为价格低，显存够，而且你最近看的 Turing/llama.cpp CUDA 问题能对应上。
+
+以后再补：
+
+```text
+T4
+↓
+L4
+↓
+A100
+```
+
+形成跨架构对比。
+
+但第一阶段只用 **一张卡**。
+
+不要一开始就想着多卡。
+
+---
+
+## 2. Linux + CUDA 开发环境
+
+需要：
+
+```text
+Ubuntu/Linux
+Git
+CMake
+Ninja
+GCC/G++
+CUDA Toolkit
+Python
+```
+
+然后确认：
+
+```bash
+nvidia-smi
+nvcc --version
+```
+
+最后能够源码编译 llama.cpp：
+
+```bash
+cmake -B build -DGGML_CUDA=ON
+cmake --build build --config Release -j
+```
+
+目前 llama.cpp 的 CUDA 构建仍然使用 `GGML_CUDA=ON`。:chatgpt-content-reference{index="1"}
+
+这里我反而建议你：
+
+**第一遍不要 Docker。**
+
+因为你要学：
+
+```text
+编译
+CUDA architecture
+动态库
+CMake
+运行环境
+```
+
+Docker 会隐藏一部分东西。
+
+以后为了复现再补 Docker。
+
+---
+
+# 三、模型只选一个
+
+不要：
+
+```text
+Qwen
+Llama
+Gemma
+Mistral
+...
+```
+
+一起测。
+
+第一阶段只定：
+
+\[
+\boxed{\text{Qwen3 4B}}
+\]
+
+或者算力比较紧：
+
+\[
+\boxed{\text{Qwen3 1.7B}}
+\]
+
+Qwen 官方目前明确提供 llama.cpp / GGUF 的运行路径，llama.cpp 也已经支持 Qwen3 系列。:chatgpt-content-reference{index="2"}
+
+我更倾向于：
+
+> **T4 16GB + Qwen3-4B + Q4_K_M**
+
+作为最初 baseline。
+
+够真实，又不会把时间浪费在 OOM 上。
+
+---
+
+# 四、先建立一个非常干净的项目仓库
+
+不要把东西全部丢在 llama.cpp 目录里。
+
+我建议：
+
+```text
+llm-inference-lab/
+│
+├── README.md
+│
+├── docs/
+│   ├── architecture.md
+│   ├── experiments.md
+│   └── findings.md
+│
+├── scripts/
+│   ├── build.sh
+│   ├── run_server.sh
+│   ├── run_bench.sh
+│   └── collect_metrics.py
+│
+├── benchmark/
+│   ├── offline/
+│   └── serving/
+│
+├── results/
+│   ├── raw/
+│   ├── processed/
+│   └── figures/
+│
+├── patches/
+│
+└── env/
+    └── environment.md
+```
+
+然后 llama.cpp 可以作为：
+
+```text
+third_party/llama.cpp
+```
+
+或者单独 clone。
+
+为什么要这么搞？
+
+因为最后你真正拿来展示的不是：
+
+> “这是 llama.cpp。”
+
+而是：
+
+> “这是我围绕 llama.cpp 做的一整套性能实验和源码改造。”
+
+---
+
+# 五、第一阶段：只跑通，不允许优化
+
+这是 **Milestone 0**。
+
+目标：
+
+```text
+模型
+→ llama.cpp
+→ CUDA
+→ 输出 token
+→ llama-server
+→ HTTP API
+```
+
+当前官方 README 已经直接支持从 Hugging Face 运行模型和启动 OpenAI-compatible server。:chatgpt-content-reference{index="3"}
+
+你完成之后，只写一页：
+
+```text
+机器：
+GPU
+CPU
+RAM
+CUDA
+Driver
+
+软件：
+llama.cpp commit
+compiler
+cmake
+
+模型：
+model
+quantization
+context
+```
+
+然后 **Git commit**：
+
+```text
+feat: establish llama.cpp CUDA inference baseline
+```
+
+这一步结束。
+
+不要手痒去优化。
+
+---
+
+# 六、第二阶段：建立基线
+
+这一步才是项目真正开始。
+
+官方已经有：
+
+```text
+llama-bench
+```
+
+它支持不同模型、prompt processing、线程、GPU offload，并能输出 CSV/JSON/JSONL/SQL；也支持重复实验。:chatgpt-content-reference{index="4"}
+
+你先固定：
+
+```text
+GPU = T4
+Model = Qwen3-4B
+Quant = Q4_K_M
+Context = 4096
+```
+
+然后测两种核心 workload。
+
+### Prefill
+
+例如：
+
+```text
+Prompt length:
+128
+512
+2048
+4096
+```
+
+记录：
+
+\[
+\text{prompt tokens/s}
+\]
+
+### Decode
+
+固定 prompt，例如：
+
+```text
+512 input
+256 output
+```
+
+记录：
+
+\[
+\text{generation tokens/s}
+\]
+
+每组至少：
+
+```text
+warmup
++
+5~10 repetitions
+```
+
+你之前已经学过 benchmark 的这些纪律，这里正好真正用起来。
+
+---
+
+# 七、第三阶段：开始服务压测
+
+启动：
+
+```text
+llama-server
+```
+
+然后不要只自己 curl 一次。
+
+正式测：
+
+\[
+TTFT
+\]
+
+首 token 时间，
+
+\[
+TPOT
+\]
+
+后续每 token 时间，
+
+以及：
+
+\[
+Throughput
+\]
+
+总吞吐。
+
+再记录：
+
+```text
+P50
+P95
+P99
+```
+
+并发设置：
+
+```text
+1
+2
+4
+8
+```
+
+当前 llama.cpp 官方已经带 server benchmark 工具，可以直接对 OpenAI-compatible endpoint 做 workload 测试；官方文档也示例了 continuous batching、parallel slots、batch size 等配置。:chatgpt-content-reference{index="6"}
+
+甚至当前还有专门的 SPEED-Bench client，用于测 throughput 和 latency。:chatgpt-content-reference{index="7"}
+
+不过我建议：
+
+> 官方工具用一套，**你自己再写一个小 Python client**。
+
+因为你自己写一次 SSE 流式响应计时，才能真正理解 TTFT 怎么算。
+
+---
+
+# 八、第四阶段：Profiling —— 项目的分水岭
+
+到这里之前，你都还只是一个比较认真的用户。
+
+从这里开始，才进入 Infra。
+
+目标不是：
+
+> “GPU utilization 90%。”
+
+而是找出：
+
+\[
+\boxed{\text{时间到底花在哪几个 kernel 上}}
+\]
+
+先把 workload 分开：
+
+```text
+Prefill
+Decode
+```
+
+然后用 profiler 看：
+
+```text
+kernel duration
+memory bandwidth
+register usage
+occupancy
+shared memory
+warp stall
+kernel launch
+```
+
+最后得到类似：
+
+```text
+Prefill:
+  MMQ       46%
+  Attention 31%
+  Others    23%
+
+Decode:
+  MMVQ      37%
+  Attention 28%
+  Others    35%
+```
+
+数字这里只是示意。
+
+你的第一个真正高价值成果是：
+
+> **找到一个 hot path。**
+
+---
+
+# 九、第五阶段：做“简单优化”
+
+这一阶段故意先不写 CUDA。
+
+例如：
+
+### 实验 A：量化
+
+```text
+Q8
+Q6
+Q5
+Q4
+IQ4
+```
+
+比较：
+
+\[
+VRAM
+\]
+
+\[
+Prefill
+\]
+
+\[
+Decode
+\]
+
+\[
+TTFT
+\]
+
+\[
+Throughput
+\]
+
+---
+
+### 实验 B：context
+
+```text
+2K
+4K
+8K
+16K
+```
+
+研究：
+
+\[
+Context\uparrow
+\Rightarrow
+KV\ memory\uparrow
+\]
+
+以及 decode performance 怎么变化。
+
+---
+
+### 实验 C：并发
+
+```text
+1
+2
+4
+8
+16
+```
+
+观察：
+
+\[
+Throughput\uparrow
+\]
+
+同时：
+
+\[
+Latency\uparrow
+\]
+
+什么时候开始饱和。
+
+---
+
+# 十、第六阶段：真正改源码
+
+**整个项目能不能超过 nano-vLLM，主要看这里。**
+
+这时才允许你选：
+
+```text
+CUDA kernel
+backend
+memory
+scheduler
+```
+
+中的一个问题。
+
+不是先决定：
+
+> “我要优化 FlashAttention。”
+
+而是：
+
+```text
+profiling
+↓
+发现热点
+↓
+阅读对应源码
+↓
+提出 hypothesis
+↓
+改
+```
+
+例如：
+
+> 为什么这个 kernel occupancy 低？
+
+或者：
+
+> 为什么 Turing 走了这个配置？
+
+或者：
+
+> 某种 tile size 是否导致 register pressure？
+
+然后：
+
+```text
+修改
+↓
+compute-sanitizer
+↓
+unit/backend tests
+↓
+microbenchmark
+↓
+end-to-end benchmark
+```
+
+最后必须回答：
+
+\[
+\text{kernel 快多少？}
+\]
+
+和：
+
+\[
+\text{整个服务快多少？}
+\]
+
+---
+
+# 十一、最好最后做一个 upstream PR
+
+不要求你的整个项目 merge。
+
+但如果其中一个真实问题能形成：
+
+```text
+Issue
+→ Patch
+→ Test
+→ Benchmark
+→ PR
+```
+
+那项目会立刻多一层可信度。
+
+你的简历不再只是：
+
+> “我自己声称优化了。”
+
+而是：
+
+> “真实 upstream maintainer 看过这个改动。”
+
+这也是为什么你前面做 #1447、看 #28760 并没有偏离路线——它们实际上是在训练这个能力。
+
+---
+
+# 十二、最后再做跨 GPU
+
+这是 **bonus**，不是前置。
+
+当 T4 整套流程稳定之后，再把完全一样的 workload 跑到：
+
+```text
+T4        Turing
+L4        Ada
+A100      Ampere
+```
+
+比较：
+
+```text
+Prefill
+Decode
+TTFT
+Throughput
+Memory
+Hot kernels
+```
+
+这时候你的问题就变得很漂亮：
+
+> 为什么相同 llama.cpp workload 在不同 GPU 架构上瓶颈不同？
+
+这个已经很像 AI Systems project 了。
+
+---
+
+# 十三、最终你应该有 5 个交付物
+
+不是只有代码。
+
+**① 一个真正能运行的服务**
+
+```text
+Qwen → llama.cpp → HTTP API
+```
+
+**② 一个 benchmark harness**
+
+一条命令：
+
+```bash
+./scripts/run_bench.sh
+```
+
+能够得到结构化结果。
+
+**③ 一套 profiling 分析**
+
+告诉别人瓶颈在哪里。
+
+**④ 一个真实源码优化**
+
+有：
+
+```text
+before
+after
+```
+
+以及正确性验证。
+
+**⑤ 一篇完整技术报告**
+
+结构：
+
+```text
+1. Problem
+2. Architecture
+3. Experimental setup
+4. Baseline
+5. Profiling
+6. Bottleneck
+7. Optimization
+8. Evaluation
+9. Lessons learned
+```
+
+---
+
+## 你现在的准备阶段，不要超过一周
+
+这点我特别想提醒你。
+
+你很容易变成：
+
+> 我要先学完 Nsight  
+> → 再学 llama.cpp 架构  
+> → 再读 CUDA guide  
+> → 再学 serving  
+> → 再开始项目。
+
+**不要这样。**
+
+准备工作只有：
+
+1. 找到一张远程 GPU；
+2. Linux + CUDA 环境；
+3. clone llama.cpp；
+4. CUDA build 成功；
+5. 下载一个 Qwen GGUF；
+6. `llama-cli/llama-server` 跑起来；
+7. 建自己的项目 repo。
+
+然后：
+
+\[
+\boxed{\text{立即开始 Baseline}}
+\]
+
+后面的知识全部：
+
+\[
+\text{碰到什么}
+\rightarrow
+\text{学什么}
+\]
+
+这才符合我们给你定的“任务驱动”路线。
+
+如果按你现在的情况，我会把**第一个明确里程碑**定得非常简单：
+
+> **先在远程 T4 上把 Qwen3-4B + CUDA llama.cpp + llama-server 跑通，并固定环境与 Git commit；暂时一个优化都不做。**
+
+完成这个以后，你的大项目才算真正开始。

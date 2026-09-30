@@ -1,0 +1,17 @@
+# 上游源码与模型（独立 clone / 太大，不入库）
+third_party/
+models/
+*.gguf
+
+# 构建产物
+build/
+**/build/
+*.o
+*.so
+
+# 日志与缓存
+*.log
+__pycache__/
+*.pyc
+.venv/
+.venv*/

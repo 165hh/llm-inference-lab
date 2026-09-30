@@ -1,0 +1,26 @@
+# llama-bench 矩阵（空格分隔，改这里而不是改脚本）。列：
+#   tag   p    n    d     fa  ctk   ctv   b     ub    reps
+#     p      = prompt tokens（0 = 关闭 prefill 测试）
+#     n      = gen tokens（0 = 关闭 decode 测试）
+#     d      = KV 预填充深度（测 decode 时 context 里已有多少 token）
+#     fa     = flash attention：1 / 0 / auto
+#     ctk/ctv= KV cache 类型
+#     reps   = llama-bench -r（重复次数，取 5 以上才有统计意义）
+#   "-" 表示不传该 flag。
+# 说明：你的 commit 若不认某个 flag（例如 -fa 是布尔 flag 而非取值），按 llama-bench --help 改本文件。
+
+# --- E1: prefill 扫描（n=0 关闭 decode）---
+pp128    128   0    -     1   q8_0  q8_0  2048  512   5
+pp512    512   0    -     1   q8_0  q8_0  2048  512   5
+pp2048   2048  0    -     1   q8_0  q8_0  2048  512   5
+pp4096   4096  0    -     1   q8_0  q8_0  2048  512   5
+
+# --- E1: decode 基线（512 输入 / 256 输出）---
+tg256    512   256  -     1   q8_0  q8_0  2048  512   5
+
+# --- E1b: decode 深度扫描（KV 已填充；要求模型上下文 >= d + n）---
+tg256_d8192    0   256  8192    1   q8_0  q8_0  2048  512   5
+tg256_d32768   0   256  32768   1   q8_0  q8_0  2048  512   5
+
+# --- E6 模板：验证改动时复制上面的行、改 tag，并让 TAG=<patch 名> 与 baseline 区分 ---
+# pp512_patch   512  0  -  1  q8_0 q8_0 2048 512 5
