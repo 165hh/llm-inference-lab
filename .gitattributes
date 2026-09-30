@@ -1,0 +1,8 @@
+# 保证脚本在 Linux(AutoDL) 与 Windows 上都是 LF —— 否则 checkout 成 CRLF 后 bash 会报 "\r': command not found"
+* text=auto
+*.sh   text eol=lf
+*.py   text eol=lf
+*.txt  text eol=lf
+*.md   text eol=lf
+*.jsonl -text
+*.gguf  -text
