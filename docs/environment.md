@@ -294,7 +294,7 @@ Ubuntu 22.04.4 / RTX 3090 24G / driver 550.144.03 / CUDA 12.4 / gcc 11.4 / cmake
 |---|---|---|
 | nvcc 真编译 + GPU 真跑（sm_86） | ✅ PASS | **能编译 llama.cpp**，96 核编译会很快 |
 | `ncu` 抓包 | ❌ `ERR_NVGPUCTRPERM`，且 `/proc/driver/nvidia/params` 显示 **`RmProfilingAdminOnly: 1`** | **宿主驱动限制，容器内 root 无法绕过** → 微架构 counters 永久不可用 |
-| `nsys` | ✅ **已预装**：`/usr/local/cuda/bin/nsys`（2023.4.4） | 只是**不在默认 PATH** 里，导致首检误报"缺失" → 脚本已修：自动把 `/usr/local/cuda/bin` 加入 PATH |
+| `nsys` | ✅ **已预装且验证通过**：`/usr/local/cuda/bin/nsys`（2023.4.4） | 首检报"缺失"只是 **PATH 问题**（脚本已修）。`nsys stats --report cuda_gpu_kern_sum` 能出 kernel 名/次数/总时长/avg/min/max → **§8 的主产出成立** |
 | hf-mirror 下载 | ⚠️ ≈32 KB/s（阿里云源实测 **15.9 MB/s**） | 不是机器问题，是 HF 的 **Xet** 路径绕过了镜像缓存 → 见 §4.6 |
 
 **结论（这台机器怎么用）**：可用于 §6/§7/§9 与 **nsys 版 §8**（kernel 时间线 = "时间花在哪几个 kernel"），
@@ -364,13 +364,17 @@ bash scripts/record_env.sh     # → results/raw/env_*.json
 
 | 项 | 值 |
 |---|---|
-| GPU / 显存 / 驱动 / CC | _(待填：smoke.sh 输出)_ |
-| CPU / RAM | _(待填)_ |
-| CUDA toolkit (nvcc) | _(待填)_ |
-| llama.cpp commit | _(待填：`git -C third_party/llama.cpp rev-parse HEAD`)_ |
-| 构建参数 | _(待填：`CUDA_ARCH=86-real`，见 `results/raw/build_*.json`)_ |
+| GPU / 显存 / 驱动 / CC | RTX 3090 / 24576 MiB / 550.144.03 / **8.6（sm_86）** |
+| CPU / RAM | 96 核 / 503 GiB |
+| 系统 / 磁盘 | Ubuntu 22.04.4 LTS；`/` 30G(overlay)、`/hy-tmp` 50G(xfs) |
+| 编译链 | CUDA toolkit **12.4** (V12.4.131)、gcc 11.4.0、cmake 3.22.1；nvcc 真编译+GPU 真跑已通过 |
+| Profiling 能力 | **nsys 2023.4.4 ✅**（kernel 时间线已验证）；**ncu counters ❌**（宿主 `RmProfilingAdminOnly: 1`，容器内无解） |
+| 平台 / 实例 / 单价 | **恒源云（GPUSHARE）** / RTX 3090 单卡 · 按量 / **¥0.98/h**（2026-09-30 实测） |
+| llama.cpp commit | _(待填：首次 clone 后记录)_ |
+| 构建参数 | `CUDA_ARCH=86-real`（见 `results/raw/build_*.json`） |
 | 模型 / 量化 | Qwen3-4B / Q4_K_M |
-| AutoDL 实例型号 / 单价 | _(待填，含当日实时价)_ |
+
+> 以 `results/raw/env_*.json`（`scripts/record_env.sh` 产出）为唯一事实来源，上表只是人读版。
 
 ## 7. 风险登记册
 
