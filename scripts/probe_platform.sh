@@ -14,6 +14,12 @@
 #   目录布局（/hy-tmp、个人数据盘）        → 决定数据放哪（防"关机被清"）
 set -uo pipefail
 
+# CUDA toolkit 常不在默认 PATH（各平台不一致）→ 补上，否则 nvcc/nsys 会误报"缺失"
+if [ -d /usr/local/cuda/bin ]; then
+  case ":$PATH:" in *":/usr/local/cuda/bin:"*) ;; *) PATH="/usr/local/cuda/bin:$PATH";; esac
+fi
+export PATH
+
 PASS=0; WARN=0; FAIL=0; CC=""
 ok()   { printf '[ PASS ] %s\n' "$1"; PASS=$((PASS+1)); }
 warn() { printf '[ WARN ] %s\n' "$1"; WARN=$((WARN+1)); }

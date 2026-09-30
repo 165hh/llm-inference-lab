@@ -293,9 +293,9 @@ Ubuntu 22.04.4 / RTX 3090 24G / driver 550.144.03 / CUDA 12.4 / gcc 11.4 / cmake
 | 检查项 | 结果 | 含义 |
 |---|---|---|
 | nvcc 真编译 + GPU 真跑（sm_86） | ✅ PASS | **能编译 llama.cpp**，96 核编译会很快 |
-| `ncu` 抓包 | ❌ `ERR_NVGPUCTRPERM` | 宿主驱动限制性能计数器权限，容器内 root **无法绕过** → 微架构 counters 拿不到 |
-| `nsys` | ⚠️ 镜像里没有 | 可自装；**nsys 走 CUPTI activity tracing，不需要 counters 权限** |
-| hf-mirror 下载 | ⚠️ **≈32 KB/s** | 2.5GB GGUF 需 ~22 小时 → 必须换源或"本地下载 + 上传" |
+| `ncu` 抓包 | ❌ `ERR_NVGPUCTRPERM`，且 `/proc/driver/nvidia/params` 显示 **`RmProfilingAdminOnly: 1`** | **宿主驱动限制，容器内 root 无法绕过** → 微架构 counters 永久不可用 |
+| `nsys` | ✅ **已预装**：`/usr/local/cuda/bin/nsys`（2023.4.4） | 只是**不在默认 PATH** 里，导致首检误报"缺失" → 脚本已修：自动把 `/usr/local/cuda/bin` 加入 PATH |
+| hf-mirror 下载 | ⚠️ ≈32 KB/s（阿里云源实测 **15.9 MB/s**） | 不是机器问题，是 HF 的 **Xet** 路径绕过了镜像缓存 → 见 §4.6 |
 
 **结论（这台机器怎么用）**：可用于 §6/§7/§9 与 **nsys 版 §8**（kernel 时间线 = "时间花在哪几个 kernel"），
 拿不到 occupancy/带宽/stall 这类 counters。报告里必须写明：

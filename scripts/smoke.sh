@@ -6,6 +6,12 @@
 #        bash scripts/smoke.sh
 set -uo pipefail   # 故意不用 -e：要跑完全部检查再汇总
 
+# CUDA toolkit 常不在默认 PATH（各平台不一致）→ 补上，否则 nvcc/ncu/nsys 会误报"缺失"
+if [ -d /usr/local/cuda/bin ]; then
+  case ":$PATH:" in *":/usr/local/cuda/bin:"*) ;; *) PATH="/usr/local/cuda/bin:$PATH";; esac
+fi
+export PATH
+
 MODEL=${MODEL:-}
 BENCH=${BENCH:-third_party/llama.cpp/build/bin/llama-bench}
 SERVER_BIN=${SERVER_BIN:-third_party/llama.cpp/build/bin/llama-server}
