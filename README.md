@@ -26,8 +26,23 @@
 
 ## 第 0 步：上机前的准备（本地 / 无卡模式，零 GPU 成本）
 
-1. **把本仓库推到远程 git 托管**（AutoDL 上要 clone 它）：
-   `git remote add origin <你的仓库 url> && git push -u origin HEAD`
+1. **把本仓库推到一个远程 git 托管**（实例上要 clone 它才能拿到 harness）：
+   - **Gitee（国内最快，推荐）**：gitee.com 注册 → 右上角「+」→ 新建仓库（名字如 `llm-inference-lab`，
+     **不要勾选**"初始化仓库 / 添加 .gitignore / 添加 README"）→ 复制 **HTTPS** 地址：
+     ```bash
+     git remote add origin https://gitee.com/<你的用户名>/llm-inference-lab.git
+     git push -u origin HEAD
+     # 首次会问用户名和密码：用户名 = Gitee 用户名；密码 = 「私人令牌」
+     # （Gitee → 设置 → 安全设置 → 私人令牌 → 生成新令牌，只显示一次，务必复制保存）
+     ```
+   - **GitHub**：github.com → New repository（同样不要 initialize）→ 复制 HTTPS 地址：
+     ```bash
+     git remote add origin https://github.com/<你的用户名>/llm-inference-lab.git
+     git push -u origin HEAD        # 密码填 Personal Access Token（Settings → Developer settings）
+     ```
+   - 验证：`git remote -v` 看地址对不对；推完后在实例上 `git clone <url>` 即可。
+   - 注意：**私有仓库用不了公共镜像加速站**，而国内从实例直连 GitHub 常很慢 → **优先 Gitee**。
+   - 远端若不小心加了 README，push 会被拒（non-fast-forward）→ 先 `git pull --rebase origin master` 再 push。
    > 计费常识：**创建实例即自动开机、即开始计费**，计费只跟开机时长有关（与 GPU 是否在算无关）。
    > 所以创建后立刻关机；下载用无卡模式 ¥0.1/h。完整规则见 `docs/environment.md §4.4`。
 2. **创建 AutoDL 实例**（按量 3080Ti 12G）——**镜像选 PyTorch 2.5.1 / Python 3.12 / CUDA 12.4**
