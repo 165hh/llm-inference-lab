@@ -8,7 +8,7 @@
 | 项 | 值 |
 |---|---|
 | 本地仓库 | `F:/cs336/llmma.cpp_qwen4b`（分支 `master`） |
-| 远端 | `origin` = `https://github.com/165hh/llm-inference-lab.git`（HTTPS + Windows 凭据管理器，**免密**） |
+| 远端 | `origin` = `https://github.com/165hh/llm-inference-lab.git`（**public** → 实例上 clone 免认证；本地 HTTPS + Windows 凭据管理器，push 免密） |
 | 平台 | 恒源云（GPUSHARE）RTX 3090 24G，按量 **¥0.98/h** |
 | 已实测 | Ubuntu 22.04.4 / 96 核 / 503G / CUDA 12.4 / nvcc ✅ / **nsys ✅** / **ncu counters ❌**（宿主 `RmProfilingAdminOnly: 1`） |
 | 项目阶段 | **M0 未完成**（还没在实例上编译过 llama.cpp、没坐实一次 llama-bench 出数） |
