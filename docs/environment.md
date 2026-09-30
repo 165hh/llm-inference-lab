@@ -148,6 +148,46 @@
 **48 小时决策规则**：48h 内抢到 → 继续 AutoDL；48h 没抢到 → 换平台开按量实例先跑 `smoke.sh`；
 一周都没卡 → 改叙事：目标架构从 SM86 改成 SM75/SM70（`说明.txt` 原案本来就是 Turing），或把主线切到 P1/P4。
 
+### 4.3 镜像与工具链选择
+
+镜像决定的是**编译器 + CUDA toolkit**，不是"哪个框架新"。三条硬规则：
+
+1. **CUDA 版本 ≤ 宿主驱动支持的上限**（最容易踩的坑）。开机第一件事 `nvidia-smi` 看右上角 `CUDA Version: X.Y`
+   —— 那是这台宿主的**驱动上限**，`nvidia-smi` 显示的**不是**镜像里装的 toolkit 版本（官方文档明确说明）。
+   例：3080Ti 主机常见驱动 535.104.05 → 上限 CUDA 12.2，选 12.4/12.8 的镜像可能跑不起来（driver too old）。
+2. **Ampere 卡要求 CUDA ≥ 11.1**（官方 GPU 选型文档：3060/3080Ti/3090/4090/4090D/A4000/A5000/A40/A100/A800/L20/H20/H800）；
+   实际建议 **≥ 11.8，优先 12.x**（llama.cpp / Triton 都更省事）。
+3. **优先 Ubuntu 20.04+ 的镜像**：官方老文档写"多数 18.04、少数 20.04"，而 18.04 的 gcc 7.5 编 llama.cpp 容易翻车
+   （需要较新的 C++17 编译器；`build.sh` 会打印 gcc 版本，编不过就 `apt install gcc-11 g++-11` 或换镜像）。
+
+参考镜像（以站内实时列表为准）：
+
+| 场景 | 镜像 | 说明 |
+|---|---|---|
+| **通用首选** | PyTorch **2.5.1 / Python 3.12 / CUDA 12.4** | 现代且兼容面广（需驱动 ≥ 550） |
+| 保守稳妥 | PyTorch **2.3.0 / Python 3.12 / CUDA 12.1** | 驱动 ≥ 530 即可 |
+| 极简（本项目只用编译器） | **Miniconda conda3 / Python 3.10 / CUDA 11.8** | 官方说明"内置 CUDA 带 .h 头文件"，适合二次编译 |
+| 前沿 | PyTorch 2.7/2.8 / CUDA 12.8 | **仅在确认宿主驱动 ≥ 570 时选** |
+| ✗ | 任何 CUDA ≤ 11.0 的老镜像（PyTorch 1.1~1.7） | Ampere 卡直接不可用 |
+
+**Nsight（ncu / nsys）通常不在镜像里**，需要自己装 —— 这是 §8 的前置条件：
+
+```bash
+which ncu nsys            # 先看有没有
+# 没有的话两条路：
+#   a) NVIDIA CUDA apt 源的可选包（版本号与镜像 CUDA 对齐，例如 12-4）：
+sudo apt-get update && sudo apt-get install -y cuda-nsight-compute-12-4 cuda-nsight-systems-12-4
+#   b) 用 CUDA toolkit 的 .run 安装器（AutoDL 官方文档 /docs/cuda/），安装时只勾 Nsight 组件
+# 也可以先在镜像市场搜 "nsight" 看有没有人打包好的社区镜像
+```
+
+装完**立刻**用 `bash scripts/smoke.sh` 的第 3 项验证 profiling 权限：报 `ERR_NVGPUCTRPERM` 就是驱动限制，
+云上未必能解（需要宿主设 `NVreg_RestrictProfilingToAdminUsers=0` 或开工单）——**这是整个 §8 的生死线**。
+
+**换镜像会重置系统盘**（官方操作：关机 → 更多操作 → 更换镜像），所以：
+**项目代码与模型一律放数据盘 `/root/autodl-tmp/`，系统盘只放环境。**
+选镜像不要纠结版本号：**开机跑 `smoke.sh`，缺什么补什么**；补不动就换镜像，成本是 5 分钟。
+
 ## 5. Day-0 / Day-1 验证清单
 
 ```bash

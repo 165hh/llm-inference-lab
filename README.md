@@ -28,7 +28,9 @@
 
 1. **把本仓库推到远程 git 托管**（AutoDL 上要 clone 它）：
    `git remote add origin <你的仓库 url> && git push -u origin HEAD`
-2. **创建 AutoDL 实例**（按量 3080Ti 12G）→ 创建后**先关机**（按量精确到秒，早关早不烧钱）→
+2. **创建 AutoDL 实例**（按量 3080Ti 12G）——**镜像选 PyTorch 2.5.1 / Python 3.12 / CUDA 12.4**
+   （保守可选 2.3.0 / 12.1；**必须 Ubuntu 20.04+ 且 CUDA ≥ 11.8**；先 `nvidia-smi` 看宿主驱动上限，
+   镜像 CUDA 版本不能超过它。细则见 `docs/environment.md §4.3`）→ 创建后**先关机**（按量精确到秒，早关早不烧钱）→
    再用**无卡模式开机**（统一 ¥0.1/h）下载模型：
    - **入口**：控制台「容器实例」→ 实例卡片上的「开机」区域 / 「更多」菜单里选 **「无卡模式开机」**
      （**必须先处于关机状态**；官方截图见 <https://www.autodl.com/docs/save_money/>）。
