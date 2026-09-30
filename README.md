@@ -11,6 +11,7 @@
 | `docs/architecture.md` | 请求路径 + ggml-cuda 关键文件 + kernel 名反查方法 |
 | `docs/experiments.md` | 实验协议（固定量/自变量/因变量、判据、命名规范） |
 | `docs/findings.md` | 结论台账（每条必须能追到 `results/raw/` 文件）+ 最终报告大纲 |
+| `docs/roadmap.md` | 本项目之后要补的能力（P1~P6）、排序规则、消融清单、岗位映射 |
 | `scripts/smoke.sh` | **Day-1 体检**：GPU/nvcc/**ncu 权限**/编译/冒烟，任何一步失败都不要继续 |
 | `scripts/build.sh` | llama.cpp CUDA 源码构建 + 记录 commit/编译信息 |
 | `scripts/run_bench.sh` | 按 `benchmark/offline/matrix.txt` 跑 llama-bench 矩阵 → `results/raw/*.jsonl` |
