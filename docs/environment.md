@@ -116,6 +116,38 @@
 **本项目的可移植性**：`scripts/` 与 `benchmark/` 全是 bash + 标准库 Python，无平台依赖 ——
 换平台只需重建环境、重跑 `smoke.sh`，其余流程不变。
 
+### 4.2 全线无卡时怎么办（3080Ti/3090/4090 都没货）
+
+先别急着换平台，按顺序试：
+
+1. **扫其他型号 + 双卡实例**。常有余量的是：A4000 16G、A5000 24G、**3080 x2**、**2080Ti x2**、V100-32G、L20/A40。
+   **双卡实例可以只跑一张卡**：`CUDA_VISIBLE_DEVICES=0`（或 llama.cpp 的 `-dev CUDA0` / `-sm none -mg 0`）→
+   等效单卡（计价口径以下单页为准；双卡实例 CPU/内存翻倍，编译反而更快）。
+   3080 是 **SM86（与 3090 同代码路径）**，2080Ti 是 SM75。
+2. **挂库存监控**：官方弹性部署 API 有地区库存接口（`idle_gpu_num`/`total_gpu_num`，部分说明要求企业认证）；
+   社区也有现成监控脚本（自行审查代码与合规性）：
+   `github.com/Kenny-Huang-mz/autodl-gpu-availability-monitor`、`github.com/iioSnail/autodl_idle_gpu_monitor`、
+   `github.com/Jiayi-Fu/autodl-gpu-monitor`。配合微信/邮件提醒，别手动刷。
+3. **把"抢到卡之前"该做的全做完**（见下），这样卡一到就能立刻出数据 —— 抢卡窗口里最贵的是环境搭建和下载。
+4. **换平台**：恒源云 / 智星云 / 英博云 / 图灵小镇 / 矩池云 / 聚合平台。用**新用户券先小额时租跑 3 天**
+   （验证浮点/带宽/运维），确认后再决定长期用谁。
+5. **免费兜底（有边界）**：Kaggle 免费 Notebook（P100 / T4，约 30 GPU-h/周）能编译 llama.cpp CUDA 后端、
+   跑 llama-bench 基线，**但做不了 `ncu` profiling** → 只能覆盖 §6~§7，覆盖不了 §8。别拿它当长期方案。
+6. 别做：反复开关机刷卡（无卡模式会释放 GPU，等于把卡让给别人）。
+
+**等待期的零 GPU 工作（照做就是进度）**：
+
+| 工作 | 为什么不花 GPU | 产出 |
+|---|---|---|
+| 本机 WSL 编 llama.cpp **CPU 版**并跑通 harness | 不需要 CUDA | 验证 `run_bench.sh`/`collect_metrics.py` 链路（除 CUDA 特有项） |
+| 跑通 `smoke.sh` 的非 GPU 分支 | 同上 | 提前暴露脚本问题 |
+| GPTQ/AWQ 算法第一版（小模型 + CPU 校准） | 纯算法 | P3 的地基 |
+| mini 平台（网关/扩缩/看板）本地 Docker | 不需要 GPU | P4 整个项目 |
+| Triton kernel 正确性开发（用 Kaggle/Colab 免费额度） | 免费额度够用 | P1 的地基 |
+
+**48 小时决策规则**：48h 内抢到 → 继续 AutoDL；48h 没抢到 → 换平台开按量实例先跑 `smoke.sh`；
+一周都没卡 → 改叙事：目标架构从 SM86 改成 SM75/SM70（`说明.txt` 原案本来就是 Turing），或把主线切到 P1/P4。
+
 ## 5. Day-0 / Day-1 验证清单
 
 ```bash
