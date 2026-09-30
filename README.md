@@ -45,6 +45,16 @@
    - **SSH 地址 vs HTTPS**：`git@github.com:...` 这种 SSH 形式要求先配好 SSH key（`ssh -T git@github.com` 能回
      "Hi <用户名>! You've successfully authenticated" 才行）；国内 **22 端口常被墙** → **更省事直接用 HTTPS + 令牌**。
      换法：`git remote set-url origin https://github.com/<用户名>/llm-inference-lab.git`
+   - **长久最省事的选择 = HTTPS + Personal Access Token**：push 一次后由 Windows Git Credential Manager
+     记住，之后再也不问；token 建议用 **fine-grained token**（只授权这一个仓库、Contents: Read and write、设 1 年有效期）。
+     SSH 的唯一优势是"不过期"，但代价是权限坑 + 22 端口，综合不划算。
+   - **Windows 上 SSH 报 `UNPROTECTED PRIVATE KEY FILE` / `Bad permissions`**（key 被忽略）→ 收紧权限即可：
+     ```powershell
+     icacls "$env:USERPROFILE\.ssh\id_rsa" /inheritance:r /grant:r "$($env:USERNAME):(F)"
+     ssh -T git@github.com     # 应显示 Hi <用户名>! You've successfully authenticated
+     ```
+   - **实例上 clone 的最省事办法：把仓库设为 public**（本仓库只有文档和脚本，没有模型/密钥），
+     这样 HTTPS clone **无需任何认证**；私有仓库则必须在实例上配 token，麻烦且不安全。
    - **建议同时配两个远端**：`origin` = GitHub（可展示、可写进简历），`gitee` = Gitee（**实例上 clone 快**，
      私有仓库用不了公共加速站）：
      ```bash
