@@ -302,6 +302,41 @@ Ubuntu 22.04.4 / RTX 3090 24G / driver 550.144.03 / CUDA 12.4 / gcc 11.4 / cmake
 "counters 不可用（平台驱动限制），瓶颈归因依据 = nsys 时间线 + 实测有效带宽（`effBW`）反推 + 参数扫描"。
 → 这仍然能支撑项目的核心闭环，但**不能声称做了完整的 kernel 级 profiling**。
 
+### 4.6 模型/数据下载（国内环境）
+
+**症状**：`hf-mirror` 实测 ≈32 KB/s，而阿里云镜像 ≈15.9 MB/s → **机器不慢，是 hf-mirror 这条路慢**。
+
+**根因**：HF 现在把新模型放在 **Xet** 存储上，`resolve` 请求会 302 到 `cas-server.xethub.hf.co`。
+响应头里出现 `xet-auth` / `xet-reconstruction-info` 就说明走的是 Xet 分片重建 ——
+**新版 `huggingface_hub` 默认启用 Xet，于是下载绕过了 hf-mirror 的本地缓存，直连境外 CDN**。
+（判断方法：`curl -sIL <resolve url> | grep -i xet`）
+
+**方案 A：禁用 Xet，走镜像的普通缓存**
+
+```bash
+pip install -U huggingface_hub hf_transfer
+HF_ENDPOINT=https://hf-mirror.com HF_HUB_DISABLE_XET=1 HF_HUB_ENABLE_HF_TRANSFER=1 \
+  hf download Qwen/Qwen3-4B-GGUF Qwen3-4B-Q4_K_M.gguf --local-dir /hy-tmp/models
+# 旧版 CLI 用：huggingface-cli download ...
+```
+
+**方案 B：换 ModelScope（国内 CDN，通常最稳）**
+
+```bash
+pip install -U modelscope
+modelscope download --model Qwen/Qwen3-4B-GGUF Qwen3-4B-Q4_K_M.gguf --local-dir /hy-tmp/models
+# repo id / 文件名以 ModelScope 页面实际为准
+```
+
+**下载前先测速（10 秒判断走哪条路）**：
+
+```bash
+curl -sL --max-time 20 -r 0-52428799 -o /dev/null -w '%{speed_download} B/s\n' '<候选 URL>'
+```
+
+**兜底**：本地下载后通过平台的文件上传/网盘传上去（本项目只需要 2.5GB，先下 **Qwen3-0.6B**（≈400MB）把流程走通也行）。
+**注意**：`/hy-tmp` 是本地盘，官方口径下关机超过 24h 可能被清 —— 模型最好也留一份在本地/网盘。
+
 ## 5. Day-0 / Day-1 验证清单
 
 ```bash
