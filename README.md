@@ -40,7 +40,17 @@
      git remote add origin https://github.com/<你的用户名>/llm-inference-lab.git
      git push -u origin HEAD        # 密码填 Personal Access Token（Settings → Developer settings）
      ```
-   - 验证：`git remote -v` 看地址对不对；推完后在实例上 `git clone <url>` 即可。
+   - 验证：`git remote -v` 看地址对不对；`git ls-remote origin` 能在无报错的情况下返回内容/空列表，
+     说明"仓库存在且认证通过"（报 `Repository not found` = 仓库还没建或没权限；报 `Permission denied (publickey)` = SSH key 没配）。
+   - **SSH 地址 vs HTTPS**：`git@github.com:...` 这种 SSH 形式要求先配好 SSH key（`ssh -T git@github.com` 能回
+     "Hi <用户名>! You've successfully authenticated" 才行）；国内 **22 端口常被墙** → **更省事直接用 HTTPS + 令牌**。
+     换法：`git remote set-url origin https://github.com/<用户名>/llm-inference-lab.git`
+   - **建议同时配两个远端**：`origin` = GitHub（可展示、可写进简历），`gitee` = Gitee（**实例上 clone 快**，
+     私有仓库用不了公共加速站）：
+     ```bash
+     git remote add gitee https://gitee.com/<用户名>/llm-inference-lab.git
+     git push gitee HEAD
+     ```
    - 注意：**私有仓库用不了公共镜像加速站**，而国内从实例直连 GitHub 常很慢 → **优先 Gitee**。
    - 远端若不小心加了 README，push 会被拒（non-fast-forward）→ 先 `git pull --rebase origin master` 再 push。
    > 计费常识：**创建实例即自动开机、即开始计费**，计费只跟开机时长有关（与 GPU 是否在算无关）。
