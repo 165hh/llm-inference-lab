@@ -24,12 +24,26 @@
 | `patches/` | 对 llama.cpp 的改动（`git format-patch` 产物） |
 | `third_party/llama.cpp` | 上游源码（独立 clone，不入本仓库） |
 
+## 第 0 步：上机前的准备（本地 / 无卡模式，零 GPU 成本）
+
+1. **把本仓库推到远程 git 托管**（AutoDL 上要 clone 它）：
+   `git remote add origin <你的仓库 url> && git push -u origin HEAD`
+2. **创建 AutoDL 实例**（按量 3080Ti 12G）；用**无卡模式 ¥0.1/h** 开机下载模型到数据盘
+   （`/root/autodl-tmp/models/`，关机不丢）。国内直连 HF 慢时用镜像：
+   ```bash
+   pip install -U huggingface_hub
+   HF_ENDPOINT=https://hf-mirror.com huggingface-cli download Qwen/Qwen3-4B-GGUF \
+       Qwen3-4B-Q4_K_M.gguf --local-dir /root/autodl-tmp/models   # 仓库/文件名以 HF 实际页面为准
+   ```
+3. 下载完**保存镜像**（环境只装一次；换卡/换区时克隆实例）。
+4. 顺便验证 Triton 能不能装能跑（为后续 P1 铺路，见 `docs/roadmap.md`）：`pip install triton` + 跑一个 vector-add。
+
 ## 快速开始（在 GPU 机器上，按顺序）
 
 ```bash
 # 0. 一次性
 git clone https://github.com/ggml-org/llama.cpp third_party/llama.cpp
-mkdir -p models && # 放 Qwen3-4B-Q4_K_M.gguf 进来
+mkdir -p models            # 放 Qwen3-4B-Q4_K_M.gguf（或在第 0 步已放到 /root/autodl-tmp/models/）
 
 # 1. Day-1 体检（最重要：ncu 权限决定 §8 profiling 能不能做）
 export MODEL=$PWD/models/Qwen3-4B-Q4_K_M.gguf
