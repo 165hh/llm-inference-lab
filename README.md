@@ -8,11 +8,14 @@
 | 路径 | 作用 |
 |---|---|
 | `docs/environment.md` | 租卡方案、预算、成本纪律、Day-1 验证清单、环境记录 |
+| `docs/runbook.md` | **每次开机的完整流程**（开机 → 准备 → M0 → E1 → 收工）+ 排错速查 |
 | `docs/architecture.md` | 请求路径 + ggml-cuda 关键文件 + kernel 名反查方法 |
 | `docs/experiments.md` | 实验协议（固定量/自变量/因变量、判据、命名规范） |
 | `docs/findings.md` | 结论台账（每条必须能追到 `results/raw/` 文件）+ 最终报告大纲 |
 | `docs/roadmap.md` | 本项目之后要补的能力（P1~P6）、排序规则、消融清单、岗位映射 |
 | `scripts/smoke.sh` | **Day-1 体检**：GPU/nvcc/**ncu 权限**/编译/冒烟，任何一步失败都不要继续 |
+| `scripts/probe_platform.sh` | 换平台/换机器时的**可用性首检**（2 分钟，含真编译 + ncu 抓包验证） |
+| `scripts/instance_setup.sh` | **一键准备**（幂等）：clone llama.cpp → 编译 → 下模型 |
 | `scripts/build.sh` | llama.cpp CUDA 源码构建 + 记录 commit/编译信息 |
 | `scripts/run_bench.sh` | 按 `benchmark/offline/matrix.txt` 跑 llama-bench 矩阵 → `results/raw/*.jsonl` |
 | `scripts/collect_metrics.py` | 原始 jsonl → `results/processed/*.csv` + 打印汇总表 |
