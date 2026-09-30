@@ -28,15 +28,23 @@
 
 1. **把本仓库推到远程 git 托管**（AutoDL 上要 clone 它）：
    `git remote add origin <你的仓库 url> && git push -u origin HEAD`
-2. **创建 AutoDL 实例**（按量 3080Ti 12G）；用**无卡模式 ¥0.1/h** 开机下载模型到数据盘
-   （`/root/autodl-tmp/models/`，关机不丢）。国内直连 HF 慢时用镜像：
+2. **创建 AutoDL 实例**（按量 3080Ti 12G）→ 创建后**先关机**（按量精确到秒，早关早不烧钱）→
+   再用**无卡模式开机**（统一 ¥0.1/h）下载模型：
+   - **入口**：控制台「容器实例」→ 实例卡片上的「开机」区域 / 「更多」菜单里选 **「无卡模式开机」**
+     （**必须先处于关机状态**；官方截图见 <https://www.autodl.com/docs/save_money/>）。
+   - 无卡模式 = **0.5 核 / 2GB 内存 / 无 GPU** → 只能下载、传文件、写代码，**编译会 OOM，跑不了实验**。
+   - 同一主账号**同时只能有 1 个**无卡模式实例；它会**释放 GPU**（别人可能抢走）。
+   - 加速：`source /etc/network_turbo`（AutoDL 学术资源加速）后再下载，国内直连 HF 慢时用镜像：
    ```bash
    pip install -U huggingface_hub
    HF_ENDPOINT=https://hf-mirror.com huggingface-cli download Qwen/Qwen3-4B-GGUF \
        Qwen3-4B-Q4_K_M.gguf --local-dir /root/autodl-tmp/models   # 仓库/文件名以 HF 实际页面为准
    ```
-3. 下载完**保存镜像**（环境只装一次；换卡/换区时克隆实例）。
-4. 顺便验证 Triton 能不能装能跑（为后续 P1 铺路，见 `docs/roadmap.md`）：`pip install triton` + 跑一个 vector-add。
+   - 数据放数据盘 `/root/autodl-tmp/`（关机不丢；系统盘也不要放大模型）。
+3. 下载完 → **关机 → 正常开机**（有 GPU）再跑 `smoke.sh`。
+   ⚠️ 无卡模式释放 GPU 后，正常开机时若该主机空闲卡不足会开不了机 —— 用「克隆实例」换区解决（官方推荐）。
+4. 正常开机后**保存镜像**（环境只装一次；换卡/换区时克隆实例）。
+5. 顺便验证 Triton 能不能装能跑（为后续 P1 铺路，见 `docs/roadmap.md`）：`pip install triton` + 跑一个 vector-add。
 
 ## 快速开始（在 GPU 机器上，按顺序）
 
