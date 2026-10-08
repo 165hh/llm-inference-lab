@@ -228,7 +228,23 @@ tmux ls                   # 看有哪些会话
 | **Termius / WindTerm** | 跨平台 / 开源 | Termius 手机也能用；WindTerm 免费且功能全 |
 | JupyterLab | 只当"网盘" | 保留它来**上传/下载大文件**（模型、结果包），别在里面跑长任务 |
 
-**③ 端口不通怎么办**：SSH 走 22。若连不上，先去云控制台的**安全组**放行 22（阿里云 ECS 默认常只开了 Jupyter 的端口）；实在不放行就继续用 Jupyter，但**必须配 tmux**。
+**③ 连不上怎么排查（按顺序，90% 在这几条里）**
+
+| 症状 | 原因 | 解法 |
+|---|---|---|
+| 连不上/超时 | **公网 IP 变了**（阿里云"节省停机模式"重启后会换 IP） | 控制台看当前公网 IP，更新 `~/.ssh/config` 或连接命令 |
+| 22 端口不通 | 安全组没放行 | 云控制台 → 安全组 → 入方向加规则：TCP **22**，源 `你的家庭宽带 IP/32` |
+| 22 通但 `Permission denied` | 没设密码 / 没绑密钥 | 控制台"重置实例密码"（阿里云重置后需**重启实例**生效）；或绑定密钥对 |
+| `REMOTE HOST IDENTIFICATION HAS CHANGED` | 换过机器/IP 复用 | 本地执行 `ssh-keygen -R <IP>` 后重连 |
+| VS Code 卡在 **Downloading VS Code Server** | 远端从 `update.code.visualstudio.com` 拉 server 失败（国内常见） | 用国内 CDN 手动装：把报错里的 **commit id** 抄出来，本地下载 `https://vscode.cdn.azure.cn/stable/<commit>/vscode-server-linux-x64.tar.gz`，上传到实例后解压到 `~/.vscode-server/bin/<commit>/`（并 `touch ~/.vscode-server/bin/<commit>/0`） |
+
+**本地自检三步**（PowerShell）：
+
+```powershell
+ipconfig | findstr IPv4                      # 你的公网出口（安全组要按这个放行）
+Test-NetConnection <实例公网IP> -Port 22     # True=端口通
+ssh -v root@<实例公网IP>                     # 看卡在哪一步：连接/认证/server 下载
+```
 
 **④ 传文件的三种方式**：VS Code 拖拽 / MobaXterm · Xftp 的 SFTP / `scp -r 本地路径 root@IP:/hy-tmp/`（本地 PowerShell 也能跑 scp）。
 

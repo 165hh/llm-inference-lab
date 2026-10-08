@@ -15,6 +15,7 @@
 | 笔记 | 主题 | 状态 |
 |---|---|---|
 | [kv-cache.md](kv-cache.md) | KV Cache：显存公式、llama.cpp 的实现方式、与并发/context 的关系 | 初稿（数字待实测校对） |
+| [inference-parallelism.md](inference-parallelism.md) | TP / PP / DP：为什么多卡是"用通信换显存"、为什么 decode 最吃亏 | 初稿（数字待 P2 实测） |
 | scheduler.md | 调度：slot / continuous batching / chunked prefill 与 vLLM 的差别 | 待写 |
 | prefill-vs-decode.md | 为什么 prefill 吃算力、decode 吃带宽（roofline） | 待写（E1 出数后写） |
 | quantization.md | GGUF 量化（K-quant / IQ）与 kernel 的对应（MMQ/MMVQ/DP4A/MMA） | 待写（E2 出数后写） |
