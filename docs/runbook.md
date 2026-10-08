@@ -206,7 +206,8 @@ shutdown -h now
 
 | 现象 | 原因 | 解法 |
 |---|---|---|
-| `ncu` 报 `ERR_NVGPUCTRPERM` | 宿主驱动 `RmProfilingAdminOnly: 1` | 容器内无解；用 nsys，报告注明 |
+| Python 脚本报 `SyntaxError: f-string: unterminated string` | 脚本用了 Python 3.12 才允许的"同种引号嵌套"，而实例的 Python ≤3.11 | `git pull` 拿修复版；仓库脚本已在 **Python 3.9 与 3.12 双版本验证**（最低要求 3.8） |
+| `ncu` 报 `ERR_NVGPUCTRPERM` | 宿主驱动 `RmProfilingAdminOnly: 1` | 容器内无解；用 nsys，报告注明 counters 不可用 |
 | `nsys` 报 `Illegal --force-overwrite option-argument` | 2023.4 的该参数是布尔 | `--force-overwrite true`，或换个新输出名 |
 | `which nvcc/nsys` 找不到但实际已装 | `/usr/local/cuda/bin` 不在 PATH | `export PATH=/usr/local/cuda/bin:$PATH`（脚本已内置） |
 | 下载 32 KB/s | HF Xet 绕过镜像缓存 | `HF_HUB_DISABLE_XET=1`，或换 ModelScope |

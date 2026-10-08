@@ -211,8 +211,11 @@ def main() -> int:
         tps = [float(r["tokens_per_s"]) for r in g if r["tokens_per_s"]]
         sds = [float(r["tokens_per_s_stddev"]) for r in g if r["tokens_per_s_stddev"]]
         bws = [float(r["eff_bw_GBps"]) for r in g if r["eff_bw_GBps"]]
-        print(f"{tag:<12} {test:<12} {str(depth if depth is not None else '-'):>7} "
-              f"{f'{type_k or "-"}/{type_v or "-"}':<11} {str(fa if fa is not None else '-'):<5} "
+        # 先算好再拼：不要在同种引号里嵌套 f-string（Python <=3.11 的语法限制）
+        depth_s = str(depth if depth is not None else "-")
+        kv_s = "%s/%s" % (type_k or "-", type_v or "-")
+        fa_s = str(fa if fa is not None else "-")
+        print(f"{tag:<12} {test:<12} {depth_s:>7} {kv_s:<11} {fa_s:<5} "
               f"{fmt(mean(tps), '9.1f')} {fmt(max(sds) if sds else None, '7.2f')} {len(g):>3} "
               f"{fmt(mean(bws), '8.1f')}")
 
