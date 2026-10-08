@@ -89,13 +89,32 @@ pkill -f llama-server
 | 第二次 `run_server.sh` 报 `couldn't bind HTTP server socket` | 上一次的 server 还挂着（`&` 起的没杀） | `ss -ltnp \| grep :8080` 找到 PID → `pkill -f llama-server` |
 | 请求被截断 / 结果怪 | `n_ctx_slot = -c/-np` 小于 `prompt+gen` | 调大 `-c` 或调小 `-np`（日志里会打印 `n_ctx_slot`） |
 
-### 2.6 收工：把数据带回家
+### 2.6 收工：写结论 + 把数据带回家 + 关机
 
 ```bash
 cd /hy-tmp/llm-inference-lab
+
+# ① 写结论（这一步才是"产出"，前面的都是原始数据）
+#    docs/findings.md →「已确认结论」表加一行：结论 / 证据文件 / 适用范围 / 日期
+#    （可选）qwen3-inference-project/notes/<今天>.md 记一条，含关键数字
+
+# ② 数据带回家
 git add -A && git commit -m "results: baseline on RTX 3090 (Hengyuan)" && git push
-shutdown -h now      # 关机即停表；/hy-tmp 是临时盘，别指望过夜
+
+# ③ 关机（停止计费；/hy-tmp 是临时盘，别指望过夜）
+shutdown -h now
 ```
+
+**这一步会产出什么**（下次开机你就是靠这些继续）：
+
+| 文件 | 位置 | 作用 |
+|---|---|---|
+| `bench_*_baseline_*.jsonl` | `results/raw/` | 每矩阵行的原始测量（报告里每个数字的出处） |
+| `bench_*.csv` | `results/processed/` | 汇总表（可重算） |
+| `build_*.json` / `env_*.json` | `results/raw/` | llama.cpp commit / 编译参数 / 显卡驱动 / CUDA 版本 |
+| `serving_*.jsonl` + `.csv` | `results/raw`、`results/processed` | 逐请求 TTFT/TPOT 原始记录 |
+| `server_*.log` | `results/raw/` | 服务端启动日志（`n_ctx`/`n_slots`/KV 大小的证据） |
+| `docs/findings.md` 新行 | `docs/` | 一条可追溯结论（**没有它，前面全白跑**） |
 
 > 模型不进 git（已 gitignore）：下次开机重下只要 ~3 分钟（¥0.05），不值得为它折腾持久化。
 

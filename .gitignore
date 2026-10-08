@@ -11,6 +11,8 @@ build/
 
 # 日志与缓存
 *.log
+# 例外：服务端启动日志里有 n_ctx / n_slots / KV 大小等关键参数，是证据，必须入库
+!results/raw/server_*.log
 __pycache__/
 *.pyc
 .venv/

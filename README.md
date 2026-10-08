@@ -66,7 +66,9 @@ bash scripts/run_server.sh &                       # 前台起服务；另开一
 python benchmark/serving/sse_bench.py --base-url http://127.0.0.1:8080 \
        --concurrency 1,2,4,8 --requests-per-level 8 --prompt-tokens 512 --max-tokens 256
 
-# 6) 收工：数据带回家 + 关机（/hy-tmp 是临时盘，关机 24h 后可能被清）
+# 6) 收工：写结论 → 数据带回家 → 关机
+#    ① docs/findings.md 的「已确认结论」表加一行（必须写 raw 文件名）
+#    ② 需要时在 qwen3-inference-project/notes/ 记一条（含数字）
 git add -A && git commit -m "results: baseline on RTX 3090" && git push
 shutdown -h now
 ```
@@ -78,7 +80,7 @@ shutdown -h now
 | 3 | `smoke.sh` | 全 PASS（**除 ncu 一项：已知 FAIL，接受**） |
 | 4 | `run_bench.sh` + `collect_metrics.py` | `results/raw/bench_*.jsonl` + `results/processed/bench_*.csv` |
 | 5（可选） | 服务压测 | TTFT/TPOT 表 + `results/raw/serving_*.jsonl` |
-| 6 | push + 关机 | 数据回到远端；停止计费 |
+| 6 | 写结论 + push + 关机 | `docs/findings.md` 多一行可追溯结论；数据回到远端；**停止计费** |
 
 逐步说明与排错见 **`docs/runbook.md`**；算钱与换平台见 **`docs/environment.md`**。
 
