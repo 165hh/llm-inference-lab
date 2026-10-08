@@ -22,8 +22,7 @@
 
 | # | 结论 | 证据文件 | 环境 | 日期 |
 |---|---|---|---|---|
-| — | _(待填：例如"3090 上 Qwen3-4B Q4_K_M decode = xx tok/s，effBW = yy GB/s（上限 936）"）_ | `results/raw/bench_*.jsonl` | 3090 / sm_86 / CUDA 12.4 | |
-| — | _(待填：prefill 从 128→4096 的 token 吞吐曲线形状与拐点)_ | | | |
+| — | [基线快照（⚠️未核对）](baseline-2026-10-08.md)：prefill 峰值 7241 tok/s @512；decode 189 tok/s @d=0（effBW ≈471 GB/s = 峰值 50%）；d=8192/32768 → 132/69 tok/s | `results/raw/bench_20261008-15*.jsonl`（**待入库**） | 3090 / sm_86 / CUDA 12.1 | 2026-10-08 |
 
 ## 与其它文档的关系
 
