@@ -40,13 +40,11 @@
 | `patches/` | 对 llama.cpp 的改动（`git format-patch` 产物） |
 | `third_party/llama.cpp` | 上游源码（独立 clone，不入本仓库） |
 
-## 快速开始（开机后照抄，≈25 分钟 / ¥0.4）
+## 快速开始（开机后照抄，6 步，≈25 分钟 / ¥0.4）
 
 ```bash
-# 0) 环境：CUDA toolkit 常不在默认 PATH
-export PATH=/usr/local/cuda/bin:$PATH
-
-# 1) 拉仓库（public，免认证；已存在则更新）
+# 1) 环境 + 拉仓库（仓库是 public，clone 免认证；已存在则更新）
+export PATH=/usr/local/cuda/bin:$PATH          # CUDA toolkit 常不在默认 PATH
 cd /hy-tmp
 if [ -d llm-inference-lab ]; then cd llm-inference-lab && git pull; else
   git clone https://github.com/165hh/llm-inference-lab.git && cd llm-inference-lab; fi
@@ -67,10 +65,19 @@ bash scripts/run_server.sh &                       # 前台起服务；另开一
 python benchmark/serving/sse_bench.py --base-url http://127.0.0.1:8080 \
        --concurrency 1,2,4,8 --requests-per-level 8 --prompt-tokens 512 --max-tokens 256
 
-# 6) 收工：数据带回家 + 关机（"/hy-tmp 是临时盘，关机 24h 后可能被清"）
+# 6) 收工：数据带回家 + 关机（/hy-tmp 是临时盘，关机 24h 后可能被清）
 git add -A && git commit -m "results: baseline on RTX 3090" && git push
 shutdown -h now
 ```
+
+| 步 | 做什么 | 产出 / 通过标准 |
+|---|---|---|
+| 1 | 环境 + 拉仓库 | 本地有 `scripts/`、`docs/` 全套 |
+| 2 | `instance_setup.sh` | `third_party/llama.cpp/build/bin/llama-bench` + `models/*.gguf` |
+| 3 | `smoke.sh` | 全 PASS（**除 ncu 一项：已知 FAIL，接受**） |
+| 4 | `run_bench.sh` + `collect_metrics.py` | `results/raw/bench_*.jsonl` + `results/processed/bench_*.csv` |
+| 5（可选） | 服务压测 | TTFT/TPOT 表 + `results/raw/serving_*.jsonl` |
+| 6 | push + 关机 | 数据回到远端；停止计费 |
 
 逐步说明与排错见 **`docs/runbook.md`**；算钱与换平台见 **`docs/environment.md`**。
 
