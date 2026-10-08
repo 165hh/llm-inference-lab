@@ -202,7 +202,37 @@ shutdown -h now
 | 下载速度 | ⚠️ 取决于源 | 用 `HF_HUB_DISABLE_XET=1` 或 ModelScope；实测阿里云源 15.9 MB/s |
 | `/hy-tmp` 持久性 | ⚠️ 关机 24h 后可能被清 | 代码走 git，数据每次都推回远端 |
 
-## 5. 排错速查
+## 5. 远程开发：别用 Jupyter 的终端硬扛
+
+JupyterLab 的终端有两个硬伤：**一断线进程就死**、**复制/滚动/多标签都别扭**。正确姿势：
+
+**① 实例上装 tmux（最重要，5 秒装完）**
+
+```bash
+apt-get install -y tmux
+tmux new -s work          # 之后所有长任务都在这里面跑
+# 断线/关浏览器后重新连上：
+tmux attach -t work       # 简写 tmux a
+tmux ls                   # 看有哪些会话
+```
+→ 有了 tmux，客户端随便断，`llama-bench`、编译、下载都不会被杀。
+
+**② 客户端选一个（按推荐度）**
+
+| 工具 | 适合 | 说明 |
+|---|---|---|
+| **VS Code + Remote-SSH** | 本项目首选 | 一个窗口同时解决：编辑 `/hy-tmp` 上的文件、集成终端、拖拽传文件、git diff。装 "Remote - SSH" 扩展 + 一条连接配置即可，免费 |
+| **Windows Terminal + 系统自带 ssh** | 纯命令行党 | `ssh root@<IP>`，多标签、配色好、复制粘贴正常（把连接写成 profile 一键连） |
+| **MobaXterm（免费版）** | 要 SFTP 面板 | 左侧文件树 + 右侧多标签终端，拖拽上传下模型很方便 |
+| **Xshell + Xftp（学生免费）** | 国内习惯 | 中文、稳定，Xftp 传文件 |
+| **Termius / WindTerm** | 跨平台 / 开源 | Termius 手机也能用；WindTerm 免费且功能全 |
+| JupyterLab | 只当"网盘" | 保留它来**上传/下载大文件**（模型、结果包），别在里面跑长任务 |
+
+**③ 端口不通怎么办**：SSH 走 22。若连不上，先去云控制台的**安全组**放行 22（阿里云 ECS 默认常只开了 Jupyter 的端口）；实在不放行就继续用 Jupyter，但**必须配 tmux**。
+
+**④ 传文件的三种方式**：VS Code 拖拽 / MobaXterm · Xftp 的 SFTP / `scp -r 本地路径 root@IP:/hy-tmp/`（本地 PowerShell 也能跑 scp）。
+
+## 6. 排错速查
 
 | 现象 | 原因 | 解法 |
 |---|---|---|
