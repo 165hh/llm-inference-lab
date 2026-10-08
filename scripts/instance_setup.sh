@@ -28,10 +28,16 @@ export PATH
 
 echo "[setup] 仓库根目录：$ROOT"
 
-# 1) llama.cpp
+# 1) llama.cpp（国内实例直连 GitHub 常失败：GnuTLS recv error / timeout → 自动换镜像）
+LLAMA_GIT=${LLAMA_GIT:-https://github.com/ggml-org/llama.cpp}
+LLAMA_GIT_MIRROR=${LLAMA_GIT_MIRROR:-https://gitclone.com/github.com/ggml-org/llama.cpp}
 if [ ! -d "$LLAMA_DIR/.git" ]; then
   echo "[setup] clone llama.cpp → $LLAMA_DIR"
-  git clone --depth 1 https://github.com/ggml-org/llama.cpp "$LLAMA_DIR"
+  if ! git clone --depth 1 "$LLAMA_GIT" "$LLAMA_DIR"; then
+    echo "[setup] 直连失败 → 换国内镜像 $LLAMA_GIT_MIRROR"
+    rm -rf "$LLAMA_DIR"
+    git clone --depth 1 "$LLAMA_GIT_MIRROR" "$LLAMA_DIR"
+  fi
 else
   echo "[setup] llama.cpp 已存在，跳过 clone（$(git -C "$LLAMA_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)）"
 fi

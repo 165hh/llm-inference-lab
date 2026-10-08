@@ -113,4 +113,5 @@ shutdown -h now      # 关机即停表；/hy-tmp 是临时盘，别指望过夜
 | 下载 32 KB/s | HF Xet 绕过镜像缓存 | `HF_HUB_DISABLE_XET=1`，或换 ModelScope |
 | `git push` 提示 non-fast-forward | 远端建仓库时初始化了 README | `git pull --rebase origin master` 后再 push |
 | `git push` 一直要密码 | 忘了 token / 用了登录密码 | 用 PAT（fine-grained，只授权本仓库）；GCM 会记住 |
+| `git clone` GitHub 报 `GnuTLS recv error (-110)` / 超时 | 国内实例直连 GitHub 不稳 | `git clone --depth 1 https://gitclone.com/github.com/ggml-org/llama.cpp`（`instance_setup.sh` 已内置自动回退）；或本地 clone 后 `scp -r` 上传 |
 | **实例卡在「启动中」，停止/关机按钮点不动** | 该主机空闲卡被占（按量**不预留 GPU**），调度在等卡；或前端状态未刷新 | ① 刷新/重登控制台；② 等 10~15 分钟看是否自动回落到"已关机/启动失败"；③ 仍卡住就**找平台客服强制停止**，并**要求从启动时刻起不计费**（按量是"进入已关机才停表"）；④ 该状态下的实例**可以安全放弃**——数据都在 git 与本地，实例上没有值钱东西 |
