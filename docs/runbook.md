@@ -9,9 +9,9 @@
 |---|---|
 | 本地仓库 | `F:/cs336/llmma.cpp_qwen4b`（分支 `master`） |
 | 远端 | `origin` = `https://github.com/165hh/llm-inference-lab.git`（**public** → 实例上 clone 免认证；本地 HTTPS + Windows 凭据管理器，push 免密） |
-| 平台 | 恒源云（GPUSHARE）RTX 3090 24G，按量 **¥0.98/h** |
-| 已实测 | Ubuntu 22.04.4 / 96 核 / 503G / CUDA 12.4 / nvcc ✅ / **nsys ✅** / **ncu counters ❌**（宿主 `RmProfilingAdminOnly: 1`） |
-| 项目阶段 | **M0 未完成**（还没在实例上编译过 llama.cpp、没坐实一次 llama-bench 出数） |
+| 平台 | 恒源云（GPUSHARE）RTX 3090 24G ¥0.98/h（已验证）；**当前实例在阿里云 ECS**（主机名 `iZ…`，按量 GPU 较贵，先看清单价） |
+| 已实测 | 恒源云：Ubuntu 22.04.4 / 96 核 / 503G / CUDA 12.4 / nvcc ✅ / nsys ✅ / ncu ❌（`RmProfilingAdminOnly: 1`）<br>阿里云：CUDA 12.1 / driver 530.30.02 / nvcc ✅ / **ncu ❌ 同样无权限** / nsys 待查 |
+| 项目阶段 | **M0 ✅**（llama.cpp CUDA 编译通过 + Qwen3-4B Q4_K_M 下载成功 + llama-server 能加载并监听 8080）<br>**E1 基线**：状态未知（`results/raw/bench_*.jsonl` 有没有出数需要确认）<br>**E1b 压测**：上一轮全部 `Connection refused`（服务未就绪就打请求）→ 无效，需重跑 |
 
 ## 1. 从「实例已关机」开始的完整顺序
 
