@@ -38,7 +38,17 @@ if [[ -n "$EXTRA" ]]; then
 fi
 
 echo "[server] log  : $LOG"
-echo "[server] url  : http://${HOST}:${PORT}   (压测用 -np $NP 作为并发上限)"
+echo "[server] url  : http://${HOST}:${PORT}   (压测并发上限 = -np $NP)"
 echo "[server] model: $MODEL  ctx=$CTX ngl=$NGL fa=$FA ctk=$CTK ctv=$CTV slots=$NP"
+echo "[server] 注意 : -c $CTX / -np $NP → **每个 slot 只有 $((CTX / NP)) tokens**；"\
+"压测的 (--prompt-tokens + --max-tokens) 必须小于它，否则请求会被截断/报错。"
+echo "[server] 就绪 : until curl -sf http://${HOST}:${PORT}/health >/dev/null; do sleep 1; done"
+
+# 端口占用体检（8080 被上一个没杀干净的 server 占着是最常见的启动失败原因）
+if command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | grep -q ":${PORT} "; then
+  echo "[server] 警告: 端口 ${PORT} 已被占用（可能是上一次没关掉的 llama-server）——"
+  echo "[server]       查看: ss -ltnp | grep :${PORT} ；清理: pkill -f llama-server"
+fi
+
 echo "[server] cmd  : $SERVER ${args[*]}"
 "$SERVER" "${args[@]}" --log-file "$LOG"

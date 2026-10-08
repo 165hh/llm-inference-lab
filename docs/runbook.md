@@ -65,10 +65,29 @@ python scripts/collect_metrics.py            # → results/processed/bench_*.csv
 ### 2.5 服务基线（同一次开机顺便做，可选）
 
 ```bash
-bash scripts/run_server.sh &                 # 前台起服务，日志进 results/raw/server_*.log
+# ① 上下文预算：n_ctx_slot = -c / -np，必须 ≥ (prompt_tokens + max_tokens)
+#    例：prompt 512 + gen 256 = 768 → 取 CTX=8192 NP=8（1024/slot）或 CTX=4096 NP=4（1024/slot）
+CTX=8192 NP=8 bash scripts/run_server.sh &          # 日志进 results/raw/server_*.log
+
+# ② 等它就绪（模型加载要几秒到几十秒，不等就压测必然 Connection refused）
+until curl -sf http://127.0.0.1:8080/health >/dev/null; do sleep 1; done; echo "server ready"
+cat results/raw/server_*.log | tail -n 20 | grep -E 'n_ctx|slot'   # 核对 n_ctx_slot 是否符合预期
+
+# ③ 压测
 python benchmark/serving/sse_bench.py --base-url http://127.0.0.1:8080 \
        --concurrency 1,2,4,8 --requests-per-level 8 --prompt-tokens 512 --max-tokens 256
+
+# ④ 收工前杀掉服务（否则下次启动会报 "couldn't bind HTTP server socket"）
+pkill -f llama-server
 ```
+
+**两个必踩的坑**（都见过）：
+
+| 现象 | 原因 | 解法 |
+|---|---|---|
+| 压测全部 `Connection refused` | 服务还没加载完（模型加载 2~30 秒） | 先跑 ② 的就绪等待循环 |
+| 第二次 `run_server.sh` 报 `couldn't bind HTTP server socket` | 上一次的 server 还挂着（`&` 起的没杀） | `ss -ltnp \| grep :8080` 找到 PID → `pkill -f llama-server` |
+| 请求被截断 / 结果怪 | `n_ctx_slot = -c/-np` 小于 `prompt+gen` | 调大 `-c` 或调小 `-np`（日志里会打印 `n_ctx_slot`） |
 
 ### 2.6 收工：把数据带回家
 
