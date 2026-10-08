@@ -13,7 +13,68 @@
 | 已实测 | Ubuntu 22.04.4 / 96 核 / 503G / CUDA 12.4 / nvcc ✅ / **nsys ✅** / **ncu counters ❌**（宿主 `RmProfilingAdminOnly: 1`） |
 | 项目阶段 | **M0 未完成**（还没在实例上编译过 llama.cpp、没坐实一次 llama-bench 出数） |
 
-## 1. 每次开机前的 30 秒纪律（防烧钱）
+## 1. 从「实例已关机」开始的完整顺序
+
+### 1.0 先判断：有没有数据要救（**不用开机**）
+
+问自己一句：**上次有没有跑出 `results/raw/bench_*.jsonl` 或 `serving_*.jsonl`，并且没 push？**
+
+- **有** → 优先救数据（实例数据随时可能被清）：开机 → `cd /hy-tmp/llm-inference-lab && git status -s && git add -A && git commit -m "results: rescue" && git push` → 关机。≈5 分钟。
+- **没有** → 什么都不用救。**模型和编译产物都能在 ~10 分钟内重建**，不要为它们开机。
+
+### 1.1 本地准备（0 GPU 成本，先做完再开机）
+
+1. `git pull` 拿最新脚本（`instance_setup.sh` 已带 GitHub 镜像回退；`run_server.sh` 会打印上下文预算与端口告警）。
+2. **给这次开机定一个唯一目标**（写一行）：例如"完成 M0 + E1 基线"，不要顺手做压测。
+3. 确认平台与单价：阿里云 GPU 按量通常比恒源云贵，**先看清每小时多少钱**再开机。
+
+### 1.2 开机后的命令（复制粘贴，≈25 分钟）
+
+```bash
+# 0) 环境
+export PATH=/usr/local/cuda/bin:$PATH
+cd /hy-tmp                                    # 恒源云；阿里云可能是 /root，按实际数据盘路径
+
+# 1) 拉仓库（public，免认证）
+if [ -d llm-inference-lab ]; then cd llm-inference-lab && git pull; else
+  git clone https://github.com/165hh/llm-inference-lab.git && cd llm-inference-lab; fi
+
+# 2) 一键准备（幂等）：clone llama.cpp（失败自动换国内镜像）→ 编译 → 下模型
+bash scripts/instance_setup.sh
+
+# 3) 冒烟（预期：只有 ncu 一项 FAIL）
+export MODEL=$PWD/models/Qwen3-4B-Q4_K_M.gguf
+bash scripts/smoke.sh
+
+# 4) E1 基线 + 汇总
+TAG=baseline bash scripts/run_bench.sh
+python scripts/collect_metrics.py
+
+# 5) 服务压测（可选；★必须先等就绪，否则全是 Connection refused）
+CTX=8192 NP=8 bash scripts/run_server.sh &
+until curl -sf http://127.0.0.1:8080/health >/dev/null; do sleep 1; done; echo "server ready"
+python benchmark/serving/sse_bench.py --base-url http://127.0.0.1:8080 \
+    --concurrency 1,2,4,8 --requests-per-level 8 --prompt-tokens 512 --max-tokens 256
+pkill -f llama-server
+
+# 6) 写一行结论 → push → 关机
+git add -A && git commit -m "results: M0 + E1 baseline" && git push
+shutdown -h now
+```
+
+### 1.3 关机的正确姿势（停机 ≠ 释放）
+
+| 平台 | 操作 | 注意 |
+|---|---|---|
+| 恒源云 | 控制台「实例管理 → 停止」或 `shutdown -h now` | 关机后不收实例费；`/hy-tmp` 是临时盘，**关机 24h 后可能被清**；连续关机 10 天实例被释放 |
+| 阿里云 ECS | 控制台「停止」 | 若用**节省停机模式**，公网 IP 可能变化、部分资源回收，但**云盘保留**；**不要选"释放"**（会删盘） |
+
+### 1.4 下次开机（E2/E3）会更快
+
+基线已在 git 里 → `git pull` → `instance_setup.sh`（已做的步骤自动跳过）→ 只改 `benchmark/offline/matrix.txt` 或 `MODEL=` → 跑 → 收工。
+**每次都要重新做**的只有：编译（如果 `/hy-tmp` 被清）和模型下载（~3 分钟）。
+
+## 1.5 每次开机前的 30 秒纪律（防烧钱）
 
 1. 这次要产出什么？（写一行 TODO，例如 "E1 基线：7 行矩阵出数"）
 2. 预计多久？（> 1 小时就拆成两次；**抢卡窗口里最贵的是环境搭建**）
