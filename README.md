@@ -39,6 +39,7 @@
 | `results/{raw,processed,figures}` | raw 只写不删；processed 可重生成；figures 放论文级图 |
 | `patches/` | 对 llama.cpp 的改动（`git format-patch` 产物） |
 | `third_party/llama.cpp` | 上游源码（独立 clone，不入本仓库） |
+| `qwen3-inference-project/` | **学习与展示层**：`notes/`（每日记录）、`concepts/`（KV Cache 等概念笔记）、`benchmarks/`（结论索引）、`scripts/`（入口说明）。代码与数据不复制到这里，仍以本仓库根为唯一来源 |
 
 ## 快速开始（开机后照抄，6 步，≈25 分钟 / ¥0.4）
 
